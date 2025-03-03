@@ -1,0 +1,45 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: crossplane-provider-sql
+  namespace: argocd
+spec:
+  destination:
+    namespace: crossplane-system
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    repoURL: https://bedag.github.io/helm-charts/
+    targetRevision: 2.0.0
+    chart: raw
+    helm:
+      valuesObject:
+        resources:
+          - apiVersion: pkg.crossplane.io/v1beta1
+            kind: DeploymentRuntimeConfig
+            metadata:
+              name: provider-sql
+              annotations:
+                argocd.argoproj.io/sync-wave: "0"
+            spec:
+              serviceAccountTemplate:
+                metadata:
+                  name: provider-sql
+          - apiVersion: pkg.crossplane.io/v1
+            kind: Provider
+            metadata:
+              name: provider-sql
+              annotations:
+                argocd.argoproj.io/sync-wave: "1"
+            spec:
+              package: xpkg.upbound.io/crossplane-contrib/provider-sql:v0.11.0
+              runtimeConfigRef:
+                apiVersion: pkg.crossplane.io/v1beta1
+                kind: DeploymentRuntimeConfig
+                name: provider-sql
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true

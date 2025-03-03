@@ -1,0 +1,67 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: crossplane-provider-helm
+  namespace: argocd
+spec:
+  destination:
+    namespace: crossplane-system
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    repoURL: https://bedag.github.io/helm-charts/
+    targetRevision: 2.0.0
+    chart: raw
+    helm:
+      valuesObject:
+        resources:
+          - apiVersion: pkg.crossplane.io/v1beta1
+            kind: DeploymentRuntimeConfig
+            metadata:
+              name: provider-helm
+              annotations:
+                argocd.argoproj.io/sync-wave: "0"
+            spec:
+              serviceAccountTemplate:
+                metadata:
+                  name: provider-helm
+          - apiVersion: pkg.crossplane.io/v1
+            kind: Provider
+            metadata:
+              name: provider-helm
+              annotations:
+                argocd.argoproj.io/sync-wave: "1"
+            spec:
+              package: xpkg.upbound.io/upbound/provider-helm:v0
+              runtimeConfigRef:
+                apiVersion: pkg.crossplane.io/v1beta1
+                kind: DeploymentRuntimeConfig
+                name: provider-helm
+          - apiVersion: helm.crossplane.io/v1alpha1
+            kind: ProviderConfig
+            metadata:
+              name: default
+              annotations:
+                argocd.argoproj.io/sync-wave: "2"
+                argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+            spec:
+              credentials:
+                source: InjectedIdentity
+          - apiVersion: rbac.authorization.k8s.io/v1
+            kind: ClusterRoleBinding
+            metadata:
+              name: provider-helm-admin-binding
+            roleRef:
+              apiGroup: rbac.authorization.k8s.io
+              kind: ClusterRole
+              name: cluster-admin
+            subjects:
+            - kind: ServiceAccount
+              name: provider-helm
+              namespace: crossplane-system
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true

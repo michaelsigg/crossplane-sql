@@ -1,0 +1,30 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.14.0/.schema/devbox.schema.json",
+  "packages": [
+    "kind@0.26.0",
+    "kubectl@1.32.1",
+    "kubernetes-helm@3.17.0",
+    "crossplane-cli@1.18.2",
+    "go-task@3.41.0",
+    "cilium-cli@0.16.23",
+    "hubble@0.13.6",
+    "jq@latest",
+    "argocd@2.13.4",
+    "xclip@latest",
+    "yq-go@latest",
+    "openssl@latest",
+    "pgadmin4@latest",
+    "postgresql_17@latest"
+  ],
+  "shell": {
+    "init_hook": [
+      "echo 'Welcome to devbox!' > /dev/null",
+      "export PATH=$PATH:$(pwd)/bin"
+    ],
+    "scripts": {
+      "test": [
+        "echo \"Error: no test specified\" && exit 1"
+      ]
+    }
+  }
+}
