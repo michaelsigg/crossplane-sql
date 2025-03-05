@@ -13,7 +13,6 @@
     "xclip@latest",
     "yq-go@latest",
     "openssl@latest",
-    "pgadmin4@latest",
     "postgresql_17@latest"
   ],
   "shell": {
