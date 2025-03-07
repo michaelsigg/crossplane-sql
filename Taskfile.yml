@@ -6,9 +6,9 @@ vars:
   KIND_NET_CIDR:
     sh: docker network inspect kind --format json | jq '.[].IPAM.Config[] | select(.Subnet | contains(":") | not) | .Subnet' -r
   LB_BLOCK_START:
-    sh: echo {{.KIND_NET_CIDR | replace "0.0/16" "250.100" }}
+    sh: echo {{.KIND_NET_CIDR}} | sed -E 's@(^|[^0-9])0/(16|24)@\1100@g'
   LB_BLOCK_STOP:
-    sh: echo {{.KIND_NET_CIDR | replace "0.0/16" "250.150" }}
+    sh: echo {{.KIND_NET_CIDR}} | sed -E 's@(^|[^0-9])0/(16|24)@\1150@g'
 
 tasks:
   default:
@@ -77,10 +77,9 @@ tasks:
   get-argocd-login-info:
     desc: Print ArgoCD URL and Login credentials
     cmds:
-      - kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d | xclip -selection clipboard
-      - echo "ArgoCD URL https://`kubectl -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}'`"
-      - echo "ArgoCD Username admin"
-      - echo "ArgoCD Password copied to clipboard"
+      - echo "ArgoCD URL -> https://`kubectl -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}'`"
+      - echo "ArgoCD Username -> admin"
+      - echo "ArgoCD Password -> $(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)"
 
   login-argocd:
     desc: Login to ArgoCD

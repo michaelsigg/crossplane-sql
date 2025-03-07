@@ -817,54 +817,6 @@
         }
       }
     },
-    "xclip@latest": {
-      "last_modified": "2025-02-07T11:26:36Z",
-      "resolved": "github:NixOS/nixpkgs/d98abf5cf5914e5e4e9d57205e3af55ca90ffc1d#xclip",
-      "source": "devbox-search",
-      "version": "0.13",
-      "systems": {
-        "aarch64-darwin": {
-          "outputs": [
-            {
-              "name": "out",
-              "path": "/nix/store/c5zwpy6bs705jfs7hvc71fkiprpxhkz1-xclip-0.13",
-              "default": true
-            }
-          ],
-          "store_path": "/nix/store/c5zwpy6bs705jfs7hvc71fkiprpxhkz1-xclip-0.13"
-        },
-        "aarch64-linux": {
-          "outputs": [
-            {
-              "name": "out",
-              "path": "/nix/store/hpdbi4q11srk4lc6inn5dxgjnyczxyi7-xclip-0.13",
-              "default": true
-            }
-          ],
-          "store_path": "/nix/store/hpdbi4q11srk4lc6inn5dxgjnyczxyi7-xclip-0.13"
-        },
-        "x86_64-darwin": {
-          "outputs": [
-            {
-              "name": "out",
-              "path": "/nix/store/spfwk9nimd2ik8arv767zxl98qw4wp1h-xclip-0.13",
-              "default": true
-            }
-          ],
-          "store_path": "/nix/store/spfwk9nimd2ik8arv767zxl98qw4wp1h-xclip-0.13"
-        },
-        "x86_64-linux": {
-          "outputs": [
-            {
-              "name": "out",
-              "path": "/nix/store/644nkn7c0pvd5x62i5m2dm9ss9c8rx2i-xclip-0.13",
-              "default": true
-            }
-          ],
-          "store_path": "/nix/store/644nkn7c0pvd5x62i5m2dm9ss9c8rx2i-xclip-0.13"
-        }
-      }
-    },
     "yq-go@latest": {
       "last_modified": "2025-02-07T11:26:36Z",
       "resolved": "github:NixOS/nixpkgs/d98abf5cf5914e5e4e9d57205e3af55ca90ffc1d#yq-go",

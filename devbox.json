@@ -10,7 +10,6 @@
     "hubble@0.13.6",
     "jq@latest",
     "argocd@2.13.4",
-    "xclip@latest",
     "yq-go@latest",
     "openssl@latest",
     "postgresql_17@latest"
