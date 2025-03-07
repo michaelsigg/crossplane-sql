@@ -12,12 +12,14 @@
     "argocd@2.13.4",
     "yq-go@latest",
     "openssl@latest",
-    "postgresql_17@latest"
+    "postgresql_17@latest",
+    "curl@latest"
   ],
   "shell": {
     "init_hook": [
       "echo 'Welcome to devbox!' > /dev/null",
-      "export PATH=$PATH:$(pwd)/bin"
+      "export PATH=$PATH:$(pwd)/bin",
+      "export TASK_X_ENV_PRECEDENCE=1"
     ],
     "scripts": {
       "test": [

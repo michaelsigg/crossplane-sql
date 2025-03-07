@@ -3,12 +3,15 @@ version: '3'
 vars:
   CLUSTER_NAME: '{{.CLUSTER_NAME | default "crossplane-sql"}}'
   CLUSTER_CONFIG: '{{.CLUSTER_CONFIG | default "kind-cilium-lb/kind-config.yaml"}}'
-  KIND_NET_CIDR:
-    sh: docker network inspect kind --format json | jq '.[].IPAM.Config[] | select(.Subnet | contains(":") | not) | .Subnet' -r
+  DOCKER_NETWORK: '{{.DOCKER_NETWORK | default "kind"}}'
+  PREP_DOCKER_NETWORK:
+    sh: docker network inspect {{.DOCKER_NETWORK}} >/dev/null 2>&1 || docker network create --driver bridge --scope local {{.DOCKER_NETWORK}}
+  DOCKER_NET_CIDR:
+    sh: docker network inspect {{.DOCKER_NETWORK}} --format json | jq '.[].IPAM.Config[] | select(.Subnet | contains(":") | not) | .Subnet' -r
   LB_BLOCK_START:
-    sh: echo {{.KIND_NET_CIDR}} | sed -E 's@(^|[^0-9])0/(16|24)@\1100@g'
+    sh: echo {{.DOCKER_NET_CIDR}} | sed -E 's@(^|[^0-9])0/(16|24)@\1100@g'
   LB_BLOCK_STOP:
-    sh: echo {{.KIND_NET_CIDR}} | sed -E 's@(^|[^0-9])0/(16|24)@\1150@g'
+    sh: echo {{.DOCKER_NET_CIDR}} | sed -E 's@(^|[^0-9])0/(16|24)@\1150@g'
 
 tasks:
   default:
@@ -117,7 +120,8 @@ tasks:
     desc: Deploy and expose a sample postgres pod
     cmds:
       - kubectl apply -f examples/sample-pod-with-lb-service.yaml
-      - SECONDS=0; while [ -z "`kubectl -n default get svc postgres -o jsonpath='{.status.loadBalancer.ingress[0].ip}'`" ]; do echo "Waiting for loadBalancer IP..."; sleep 2; [ "$SECONDS" -gt 300 ] && echo "Timed out waiting for Loadbalancer IP" >&2 && exit 1; done; echo "Loadbalancer IP available!"
+      - while ! kubectl -n default get svc postgres -o jsonpath='{.status.loadBalancer.ingress[0].ip}' >/dev/null 2>&1; do sleep 1; done
+      - while :; do curl -m 1 -o /dev/null -s $(kubectl -n default get svc postgres -o jsonpath='{.status.loadBalancer.ingress[0].ip}'):5432 || [ $? -eq 52 ] && break; sleep 1; done
       - kubectl apply -f examples/db-conn-secret.yaml
       - kubectl apply -f examples/postgresql-provider-config.yaml
       - PGPASSWORD=pass psql -h $(kubectl -n default get svc postgres -o jsonpath='{.status.loadBalancer.ingress[0].ip}') -U postgres -p 5432 -c "\l"
