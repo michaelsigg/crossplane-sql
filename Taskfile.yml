@@ -116,7 +116,7 @@ tasks:
     cmds:
       - kubectl apply -f argocd_apps/crossplane-provider-kubernetes.yaml
 
-  deploy-postgresql-with-sample-db:
+  deploy-postgresql-pod:
     desc: Deploy and expose a sample postgres pod
     cmds:
       - kubectl apply -f examples/sample-pod-with-lb-service.yaml
@@ -124,7 +124,19 @@ tasks:
       - while :; do curl -m 1 -o /dev/null -s $(kubectl -n default get svc postgres -o jsonpath='{.status.loadBalancer.ingress[0].ip}'):5432 || [ $? -eq 52 ] && break; sleep 1; done
       - kubectl apply -f examples/db-conn-secret.yaml
       - kubectl apply -f examples/postgresql-provider-config.yaml
-      - PGPASSWORD=pass psql -h $(kubectl -n default get svc postgres -o jsonpath='{.status.loadBalancer.ingress[0].ip}') -U postgres -p 5432 -c "\l"
+
+  deploy-postgresql-role:
+    desc: Deploy a postgresql role "myuser"
+    cmds:
+      - task: deploy-postgresql-pod
+      - kubectl apply -f examples/role.yaml
+      - kubectl wait --namespace default --for=condition=synced roles.postgresql.sql.crossplane.io/myuser --timeout=90s
+      - PGPASSWORD=pass psql -h $(kubectl -n default get svc postgres -o jsonpath='{.status.loadBalancer.ingress[0].ip}') -U postgres -p 5432 -c "\du"
+
+  deploy-postgresql-database:
+    desc: Deploy a postgresql database "myfirstdb"
+    cmds:
+      - task: deploy-postgresql-role
       - kubectl apply -f examples/database.yaml
       - kubectl wait --namespace default --for=condition=synced databases.postgresql.sql.crossplane.io/myfirstdb --timeout=90s
       - PGPASSWORD=pass psql -h $(kubectl -n default get svc postgres -o jsonpath='{.status.loadBalancer.ingress[0].ip}') -U postgres -p 5432 -c "\l"

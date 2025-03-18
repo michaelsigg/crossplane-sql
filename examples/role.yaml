@@ -1,0 +1,12 @@
+apiVersion: postgresql.sql.crossplane.io/v1alpha1
+kind: Role
+metadata:
+  name: myuser
+spec:
+  deletionPolicy:  Orphan
+  writeConnectionSecretToRef:
+    name: myuser-secret
+    namespace: default
+  forProvider:
+    privileges:
+      login: true
