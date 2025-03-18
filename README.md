@@ -16,5 +16,7 @@ task setup-cluster
 
 Run postgresql and create sample database with [sql crossplane provider](https://github.com/crossplane-contrib/provider-sql):
 ```shell
-task deploy-postgresql-with-sample-db
+task deploy-postgresql-pod
+
+task deploy-postgresql-database
 ```
