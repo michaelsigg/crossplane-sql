@@ -1,0 +1,9 @@
+apiVersion: database.bedag.ch/v1alpha1
+kind: Database
+metadata:
+  name: db1
+  namespace: db1
+spec:
+  name: db1
+  dbru: 1
+  dbinstance: co-backend-bronze

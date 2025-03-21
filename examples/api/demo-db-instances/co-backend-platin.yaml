@@ -1,0 +1,90 @@
+apiVersion: database.bedag.ch/v1
+kind: DBInstance
+metadata:
+  name: co-backend-platin
+spec:
+  Name: co-backend-platin
+  DBRU: 20
+  Networkcontext: co-backend
+  ServiceLevel: Platin
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: co-backend-platin-credentials
+  namespace: bedag-db
+type: Opaque
+stringData:
+  username: postgres
+  password: pass
+  endpoint: postgres-co-backend-platin.bedag-db.svc.cluster.local
+  port: "5432"
+---
+apiVersion: postgresql.sql.crossplane.io/v1alpha1
+kind: ProviderConfig
+metadata:
+  name: co-backend-platin
+spec:
+  sslMode: disable
+  credentials:
+    source: PostgreSQLConnectionSecret
+    connectionSecretRef:
+      namespace: bedag-db
+      name: co-backend-platin-credentials
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-co-backend-platin
+  namespace: bedag-db
+spec:
+  selector:
+    matchLabels:
+      app: postgres
+      instance: co-backend-platin
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: postgres
+        instance: co-backend-platin
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+      containers:
+        - name: postgres
+          image: postgres:latest
+          resources: {}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - all
+          env:
+            - name: POSTGRES_PASSWORD
+              value: pass
+          ports:
+            - containerPort: 5432
+              name: postgres
+          readinessProbe:
+            initialDelaySeconds: 5
+            periodSeconds: 2
+            timeoutSeconds: 1
+            exec:
+              command: [ "pg_isready", "-U", "postgres" ]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-co-backend-platin
+  namespace: bedag-db
+spec:
+  selector:
+    app: postgres
+    instance: co-backend-platin
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+  type: ClusterIP

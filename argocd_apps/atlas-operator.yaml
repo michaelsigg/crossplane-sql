@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: crossplane
+  name: atlas-operator
   namespace: argocd
 spec:
   destination:
@@ -9,11 +9,11 @@ spec:
     server: https://kubernetes.default.svc
   project: default
   source:
-    chart: crossplane
+    chart: atlas-operator
     helm:
-      releaseName: crossplane
-    repoURL: https://charts.crossplane.io/stable
-    targetRevision: 1.20.0
+      releaseName: atlas-operator
+    repoURL: ghcr.io/ariga/charts
+    targetRevision: 0.7.7
   syncPolicy:
     automated:
       selfHeal: true

@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: pgs
+
+resources:
+- namespace.yaml
+- deploy.yaml
+- service.yaml
+- postgresql-provider-config.yaml
+
+secretGenerator:
+- name: postgres-credentials
+  type: Opaque
+  literals:
+  - username=postgres
+  - password=pass
+  - endpoint=postgres.pgs.svc.cluster.local
+  - port="5432"
+  options:
+      disableNameSuffixHash: true

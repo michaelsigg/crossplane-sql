@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pode
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: pode
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: pode
+    spec:
+      containers:
+        - name: pode
+          image: badgerati/pode:2.2.2-alpine
+          ports:
+            - containerPort: 8080
+              name: pode
+          volumeMounts:
+            - name: pode
+              mountPath: /pode
+          resources: {}
+          command:
+            - pwsh
+            - -c
+            - /pode/server.ps1
+      volumes:
+        - name: pode
+          configMap:
+            name: pode-configmap

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pode
+  namespace: default
+spec:
+  selector:
+    app: pode
+  ports:
+    - name: pode
+      port: 8080
+      targetPort: pode
+  type: ClusterIP

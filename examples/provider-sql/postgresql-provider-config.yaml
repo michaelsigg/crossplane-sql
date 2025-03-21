@@ -11,5 +11,5 @@ spec:
   credentials:
     source: PostgreSQLConnectionSecret
     connectionSecretRef:
-      namespace: default
-      name: db-conn
+      namespace: pgs
+      name: postgres-credentials
