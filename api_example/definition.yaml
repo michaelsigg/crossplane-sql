@@ -1,0 +1,27 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata: 
+  name: xsiggolinos.bedag.crossplane.io
+spec:
+  group: bedag.crossplane.io
+  names:
+    kind: XSiggolino
+    plural: xsiggolinos
+  claimNames:
+    kind: Siggolino
+    plural: siggolinos
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              name:
+                type: string
+            required: 
+              - name

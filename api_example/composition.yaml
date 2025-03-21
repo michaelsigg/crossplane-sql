@@ -1,0 +1,45 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: test-siggolino
+spec:
+  compositeTypeRef:
+    apiVersion: bedag.crossplane.io/v1alpha1
+    kind: XSiggolino
+  mode: Pipeline
+  pipeline:
+  - step: create-siggolino
+    functionRef:
+      name: function-go-templating
+    input:
+      apiVersion: gotemplating.fn.crossplane.io/v1beta1
+      kind: GoTemplate
+      source: Inline
+      inline:
+        template: |
+          {{- $siggolinoname := $.observed.composite.resource.spec.name }}
+          apiVersion: kubernetes.crossplane.io/v1alpha2
+          kind: Object
+          metadata:
+            annotations:
+              gotemplating.fn.crossplane.io/composition-resource-name: {{ $siggolinoname }}
+          spec:
+            forProvider:
+              manifest:
+                apiVersion: v1
+                data:
+                  sample-key: {{ $siggolinoname }}-test
+                  sample-key2: bla
+                kind: ConfigMap
+                metadata:
+                  name: {{ $siggolinoname }}
+                  namespace: default
+            managementPolicies:
+              - Observe
+              - Create
+              - Update
+            providerConfigRef:
+              name: default
+  - step: automatically-detect-readiness
+    functionRef:
+      name: function-auto-ready

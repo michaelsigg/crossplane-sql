@@ -1,0 +1,8 @@
+
+apiVersion: bedag.crossplane.io/v1alpha1
+kind: Siggolino
+metadata:
+  name: test1
+  namespace: default
+spec:
+  name: michaelsigg
