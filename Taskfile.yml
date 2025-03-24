@@ -36,6 +36,7 @@ tasks:
     label: create kind cluster {{.CLUSTER_NAME}} and config "{{.CLUSTER_CONFIG}}"
     dotenv: ['.env'] #https://taskfile.dev/next/experiments/env-precedence
     cmds:
+      - echo "If the worker nodes fail to join the control plane, refer to https://kind.sigs.k8s.io/docs/user/known-issues/#pod-errors-due-to-too-many-open-files"
       - kind create cluster --name {{.CLUSTER_NAME}} --config {{.CLUSTER_CONFIG}}
     status:
       - kind get clusters | grep -xq {{.CLUSTER_NAME}}
