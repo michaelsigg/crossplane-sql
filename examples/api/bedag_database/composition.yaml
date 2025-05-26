@@ -1,0 +1,142 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: bedag-database
+spec:
+  compositeTypeRef:
+    apiVersion: database.bedag.ch/v1alpha1
+    kind: XDatabase
+  mode: Pipeline
+  pipeline:
+  - step: create-role-and-db
+    functionRef:
+      name: function-go-templating
+    input:
+      apiVersion: gotemplating.fn.crossplane.io/v1beta1
+      kind: GoTemplate
+      source: Inline
+      inline:
+        template: |
+          {{- $dbname := $.observed.composite.resource.spec.name }}
+          {{- $dbinstance := $.observed.composite.resource.spec.dbinstance }}
+          {{- $ns := $.observed.composite.resource.spec.claimRef.namespace | default "db1"}}
+          {{- $praefix := "XYZ"}}
+          ---
+          apiVersion: meta.gotemplating.fn.crossplane.io/v1alpha1
+          kind: ExtraResources
+          requirements:
+            envInfos:
+              apiVersion: v1
+              kind: ConfigMap
+              matchLabels:
+                subscription: {{ $ns }}
+          {{- with .extraResources }}
+          {{ $someExtraResources := index . "envInfos" }}
+          {{- range $i, $extraResource := $someExtraResources.items }}
+          {{ $praefix = index $extraResource.resource.metadata.labels "praefix" }}
+          {{- end }}
+          {{- end }}
+          ---
+          apiVersion: postgresql.sql.crossplane.io/v1alpha1
+          kind: Role
+          metadata:
+            name: {{ $dbname }}-role
+            annotations:
+              gotemplating.fn.crossplane.io/composition-resource-name: {{ $dbname }}-role
+            labels:
+              praefix: {{ $praefix }}
+          spec:
+            deletionPolicy: Delete
+            writeConnectionSecretToRef:
+              name: {{ $dbname }}-secret
+              namespace: {{ $ns }}
+            forProvider:
+              privileges:
+                createDb: true
+                login: true
+                createRole: true
+                inherit: true
+            providerConfigRef:
+              name: {{ $dbinstance }}
+          ---
+          apiVersion: postgresql.sql.crossplane.io/v1alpha1
+          kind: Database
+          metadata:
+            name: {{ $dbname }}
+            annotations:
+              gotemplating.fn.crossplane.io/composition-resource-name: {{ $dbname }}
+          spec:
+            forProvider:
+              owner: {{ $dbname }}-role
+              allowConnections: true
+            providerConfigRef:
+              name: {{ $dbinstance }}
+
+  - step: create-db-schema
+    functionRef:
+      name: function-go-templating
+    input:
+      apiVersion: gotemplating.fn.crossplane.io/v1beta1
+      kind: GoTemplate
+      source: Inline
+      inline:
+        template: |
+          {{- $dbname := $.observed.composite.resource.spec.name }}
+          apiVersion: kubernetes.crossplane.io/v1alpha2
+          kind: Object
+          metadata:
+            annotations:
+              gotemplating.fn.crossplane.io/composition-resource-name: {{ $dbname }}-schema
+          spec:
+            forProvider:
+              manifest:
+                apiVersion: db.atlasgo.io/v1alpha1
+                kind: AtlasSchema
+                metadata:
+                  name: {{ $dbname }}-schema
+                  namespace: {{ $.observed.composite.resource.spec.claimRef.namespace }}
+                spec:
+                  credentials:
+                    scheme: postgres
+                    database: {{ $dbname }}
+                    hostFrom:
+                      secretKeyRef:
+                        key: endpoint
+                        name: {{ $dbname }}-secret
+                    passwordFrom:
+                      secretKeyRef:
+                        key: password
+                        name: {{ $dbname }}-secret
+                    userFrom:
+                      secretKeyRef:
+                        key: username
+                        name: {{ $dbname }}-secret
+                    port: 5432
+                    parameters:
+                      sslmode: disable
+                  schema:
+                    sql: |
+                      create table videos (
+                        id varchar(50) not null,
+                        description text,
+                        primary key (id)
+                      );
+                      create table comments (
+                        id serial,
+                        video_id varchar(50) not null,
+                        description text not null,
+                        primary key (id),
+                        CONSTRAINT fk_videos FOREIGN KEY(video_id) REFERENCES videos(id)
+                      );
+
+            managementPolicies:
+              - Observe
+              - Create
+              - Update
+              - Delete
+            providerConfigRef:
+              name: default
+
+  - step: automatically-detect-readiness
+    functionRef:
+      name: function-auto-ready

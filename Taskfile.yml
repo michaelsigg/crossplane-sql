@@ -29,6 +29,9 @@ tasks:
       - task: deploy-crossplane
       - task: deploy-crossplane-functions
       - task: deploy-crossplane-provider-sql
+      - task: deploy-crossplane-provider-kubernetes
+      - task: deploy-crossplane-provider-http
+      - task: deploy-atlas-operator
       - task: get-argocd-login-info
 
   create-kind-cluster:
@@ -36,6 +39,7 @@ tasks:
     label: create kind cluster {{.CLUSTER_NAME}} and config "{{.CLUSTER_CONFIG}}"
     dotenv: ['.env'] #https://taskfile.dev/next/experiments/env-precedence
     cmds:
+      - echo "If the worker nodes fail to join the control plane, refer to https://kind.sigs.k8s.io/docs/user/known-issues/#pod-errors-due-to-too-many-open-files"
       - kind create cluster --name {{.CLUSTER_NAME}} --config {{.CLUSTER_CONFIG}}
     status:
       - kind get clusters | grep -xq {{.CLUSTER_NAME}}
@@ -115,28 +119,69 @@ tasks:
     desc: Deploy crossplane provider kubernetes
     cmds:
       - kubectl apply -f argocd_apps/crossplane-provider-kubernetes.yaml
-
-  deploy-postgresql-pod:
-    desc: Deploy and expose a sample postgres pod
+  
+  deploy-crossplane-provider-http:
+    desc: Deploy crossplane provider http
     cmds:
-      - kubectl apply -f examples/sample-pod-with-lb-service.yaml
-      - while ! kubectl -n default get svc postgres -o jsonpath='{.status.loadBalancer.ingress[0].ip}' >/dev/null 2>&1; do sleep 1; done
-      - while :; do curl -m 1 -o /dev/null -s $(kubectl -n default get svc postgres -o jsonpath='{.status.loadBalancer.ingress[0].ip}'):5432 || [ $? -eq 52 ] && break; sleep 1; done
-      - kubectl apply -f examples/db-conn-secret.yaml
-      - kubectl apply -f examples/postgresql-provider-config.yaml
+      - kubectl apply -f argocd_apps/crossplane-provider-http.yaml
+
+  deploy-atlas-operator:
+    desc: Deploy the Atlas Operator
+    cmds:
+      - kubectl apply -f argocd_apps/atlas-operator.yaml
+
+  deploy-postgresql-server:
+    desc: Deploy and expose a sample postgres server
+    cmds:
+      - kustomize build examples/provider-sql | kubectl apply -f -
+      - kubectl wait --namespace pgs --for=condition=ready --timeout=90s pods -l app=postgres
 
   deploy-postgresql-role:
     desc: Deploy a postgresql role "myuser"
     cmds:
-      - task: deploy-postgresql-pod
-      - kubectl apply -f examples/role.yaml
-      - kubectl wait --namespace default --for=condition=synced roles.postgresql.sql.crossplane.io/myuser --timeout=90s
-      - PGPASSWORD=pass psql -h $(kubectl -n default get svc postgres -o jsonpath='{.status.loadBalancer.ingress[0].ip}') -U postgres -p 5432 -c "\du"
+      - task: deploy-postgresql-server
+      - kubectl apply -f examples/provider-sql/role.yaml
+      - kubectl wait --namespace pgs --for=condition=synced roles.postgresql.sql.crossplane.io/myuser --timeout=90s
+      - kubectl exec -n pgs -it $(kubectl get pods -n pgs -l app=postgres -o jsonpath='{.items[0].metadata.name}') -- psql -U postgres -d postgres -c "\du"
 
   deploy-postgresql-database:
     desc: Deploy a postgresql database "myfirstdb"
     cmds:
       - task: deploy-postgresql-role
-      - kubectl apply -f examples/database.yaml
-      - kubectl wait --namespace default --for=condition=synced databases.postgresql.sql.crossplane.io/myfirstdb --timeout=90s
-      - PGPASSWORD=pass psql -h $(kubectl -n default get svc postgres -o jsonpath='{.status.loadBalancer.ingress[0].ip}') -U postgres -p 5432 -c "\l"
+      - kubectl apply -f examples/provider-sql/database.yaml
+      - kubectl wait --namespace pgs --for=condition=synced databases.postgresql.sql.crossplane.io/myfirstdb --timeout=90s
+      - kubectl exec -n pgs -it $(kubectl get pods -n pgs -l app=postgres -o jsonpath='{.items[0].metadata.name}') -- psql -U postgres -d postgres -c "\l"
+
+  deploy-postgresql-atlas-schema:
+    desc: Deploy an example postgresql schema with atlas operator
+    cmds:
+      - task: deploy-postgresql-database
+      - kubectl apply -f examples/provider-sql/atlas-test.yaml
+      - kubectl wait --namespace pgs --for=condition=ready atlasschemas.db.atlasgo.io/atlasschema-pg --timeout=90s
+      - kubectl exec -n pgs -it $(kubectl get pods -n pgs -l app=postgres -o jsonpath='{.items[0].metadata.name}') -- psql -U postgres -d myfirstdb -c "\dt"
+
+  deploy-demo-db-instances:
+    desc: Deploy demo database instances
+    cmds:
+      # deploy CRD
+      - kubectl apply -f examples/api/demo-db-instances/crd_dbinstance.yaml
+      - kubectl wait --for=condition=Established crd/dbinstances.database.bedag.ch --timeout=90s
+      # deploy demo db instances
+      - kustomize build examples/api/demo-db-instances | kubectl apply -f -
+      # wait for the instances to be ready
+      - kubectl wait --namespace bedag-db --for=condition=ready --timeout=90s pods -l app=postgres
+
+  deploy-demo-xrd-and-xr:
+    desc: Deploy demo XRD and XR
+    cmds:
+      - kustomize build examples/api/bedag_database | kubectl apply -f -
+      - kubectl wait --for=condition=Established compositeresourcedefinition.apiextensions.crossplane.io/xdatabases.database.bedag.ch --timeout=90s
+      - kubectl apply -f examples/api/bedag_database/composition.yaml
+
+  deploy-pode:
+    desc: Deploy a pode server
+    cmds:
+      - kustomize build examples/provider-http-with-pode | kubectl apply -f -
+      - kubectl wait --namespace pode --for=condition=ready --timeout=90s pods -l app=pode
+
+ 

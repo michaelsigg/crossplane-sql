@@ -1,0 +1,45 @@
+apiVersion: http.crossplane.io/v1alpha2
+kind: DisposableRequest
+metadata:
+  name: msi-notification1
+spec:
+  deletionPolicy: Orphan
+  forProvider:
+    url:   http://pode.pode.svc.cluster.local:8080/notify
+    method: POST
+    body: |
+      {
+        "userId": "MSI"
+      }
+    headers:
+      Content-Type:
+        - application/json
+      Authorization:
+        - "Bearer {{ pode-secret:pode:token }}"
+    insecureSkipTLSVerify: true
+    expectedResponse: '.body.status == "sent"'
+    rollbackRetriesLimit: 5
+    waitTimeout: 5m
+
+    # Indicates whether the reconciliation should loop indefinitely. If `rollbackRetriesLimit` is set and the request returns an error, it will stop reconciliation once the limit is reached.
+    # shouldLoopInfinitely: true
+
+    # Specifies the duration after which the next reconcile should occur.
+    # nextReconcile: 3m 
+
+    secretInjectionConfigs: 
+      - secretRef:
+          name: notification-response
+          namespace: default
+        metadata:
+          labels:
+            status: sent
+          annotations:
+            testkey: testvalue
+        keyMappings:
+          - secretKey: message
+            responseJQ: .body.notification
+        setOwnerReference: true
+ 
+  providerConfigRef:
+    name: http-conf

@@ -6,7 +6,7 @@ spec:
   deletionPolicy:  Orphan
   writeConnectionSecretToRef:
     name: myuser-secret
-    namespace: default
+    namespace: pgs
   forProvider:
     privileges:
       login: true

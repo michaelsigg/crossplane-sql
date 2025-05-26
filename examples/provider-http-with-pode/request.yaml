@@ -1,0 +1,62 @@
+apiVersion: http.crossplane.io/v1alpha2
+kind: Request
+metadata:
+  name: msi-manage-db
+spec:
+  forProvider:
+    insecureSkipTLSVerify: true
+    waitTimeout: 5m
+    headers:
+      Content-Type:
+        - application/json
+      Authorization:
+        - ("Bearer {{ pode-secret:pode:token }}")
+    payload:
+      baseUrl: http://pode.pode.svc.cluster.local:8080/databases
+      body: |
+        {
+          "dbname": "myfirstdb",
+          "collation": "collation1",
+          "user": "siggolino"
+        }
+    mappings:
+      - action: CREATE
+        body: |
+          {
+            dbname: .payload.body.dbname,
+            collation: .payload.body.collation,
+            user: .payload.body.user
+          }
+        url: .payload.baseUrl
+
+      - action: OBSERVE
+        url: (.payload.baseUrl + "/" + (.response.body.id|tostring))
+
+      - method: "PUT"
+        body: |
+          {
+            dbname: .payload.body.dbname,
+            collation: .payload.body.collation,
+            user: .payload.body.user
+          }
+        url: (.payload.baseUrl + "/" + (.response.body.id|tostring))
+
+      - action: REMOVE
+        url: (.payload.baseUrl + "/" + (.response.body.id|tostring))
+
+    secretInjectionConfigs: 
+      - secretRef:
+          name: response-secret
+          namespace: default
+        metadata:
+          labels:
+            managed-by: provider-http
+        keyMappings:
+          - secretKey: extracted-password
+            responseJQ: .body.password
+          - secretKey: extracted-username
+            responseJQ: .body.user
+        setOwnerReference: true 
+
+  providerConfigRef:
+    name: http-conf

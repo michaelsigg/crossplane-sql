@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: pode
+
+resources:
+- namespace.yaml
+- deploy.yaml
+- service.yaml
+
+configMapGenerator:
+- name: pode-configmap
+  namespace: pode
+  files:
+  - server.ps1
+
+secretGenerator:
+- name: pode-secret
+  literals:
+  - token=dcbcb128-1c7a-4de4-b8c2-612566325d10
+  options:
+      disableNameSuffixHash: true

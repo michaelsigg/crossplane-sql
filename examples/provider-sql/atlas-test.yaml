@@ -1,0 +1,38 @@
+apiVersion: db.atlasgo.io/v1alpha1
+kind: AtlasSchema
+metadata:
+  name: atlasschema-pg
+  namespace: pgs
+spec:
+  credentials:
+    scheme: postgres
+    database: myfirstdb
+    hostFrom:
+      secretKeyRef:
+        key: endpoint
+        name: postgres-credentials
+    passwordFrom:
+      secretKeyRef:
+        key: password
+        name: postgres-credentials
+    userFrom:
+      secretKeyRef:
+        key: username
+        name: postgres-credentials
+    port: 5432
+    parameters:
+      sslmode: disable
+  schema:
+    sql: |
+      create table videos (
+        id varchar(50) not null,
+        description text,
+        primary key (id)
+      );
+      create table comments (
+        id serial,
+        video_id varchar(50) not null,
+        description text not null,
+        primary key (id),
+        CONSTRAINT fk_videos FOREIGN KEY(video_id) REFERENCES videos(id)
+      );
