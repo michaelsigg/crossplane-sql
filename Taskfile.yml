@@ -79,7 +79,7 @@ tasks:
     cmds:
       - helm repo add argo https://argoproj.github.io/argo-helm --force-update
       - helm upgrade argocd argo/argo-cd --install --wait --timeout 5m --namespace argocd --create-namespace --set "configs.cm.application\.resourceTrackingMethod=annotation" --set server.service.type=LoadBalancer
-      - SECONDS=0; while [ -z "`kubectl -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}'`" ]; do echo "Waiting for loadBalancer IP..."; sleep 2; [ "$SECONDS" -gt 300 ] && echo "Timed out waiting for Loadbalancer IP" >&2 && exit 1; done; echo "Loadbalancer IP available!"
+      - kubectl wait service -n argocd argocd-server --for=jsonpath={..ip} --timeout=90s
 
   get-argocd-login-info:
     desc: Print ArgoCD URL and Login credentials

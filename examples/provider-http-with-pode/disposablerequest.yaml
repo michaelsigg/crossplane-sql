@@ -17,7 +17,7 @@ spec:
       Authorization:
         - "Bearer {{ pode-secret:pode:token }}"
     insecureSkipTLSVerify: true
-    expectedResponse: '.body.status == "sent"'
+    #expectedResponse: '.body.status == "sent"' # mit dieser Option gibt es irgendwie 2 POST Requests..
     rollbackRetriesLimit: 5
     waitTimeout: 5m
 

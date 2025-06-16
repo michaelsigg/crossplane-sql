@@ -13,7 +13,8 @@
     "yq-go@latest",
     "openssl@latest",
     "postgresql_17@latest",
-    "curl@latest"
+    "curl@latest",
+    "gron@latest"
   ],
   "shell": {
     "init_hook": [

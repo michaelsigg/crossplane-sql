@@ -348,6 +348,54 @@
         }
       }
     },
+    "gron@latest": {
+      "last_modified": "2025-05-16T20:19:48Z",
+      "resolved": "github:NixOS/nixpkgs/12a55407652e04dcf2309436eb06fef0d3713ef3#gron",
+      "source": "devbox-search",
+      "version": "0.7.1",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/2kxg5p1px23qdpv2c2k9q9i6xrw7vmvf-gron-0.7.1",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/2kxg5p1px23qdpv2c2k9q9i6xrw7vmvf-gron-0.7.1"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/j8s72lcmm4y8d6jjl7ixws6hvp8dwh5a-gron-0.7.1",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/j8s72lcmm4y8d6jjl7ixws6hvp8dwh5a-gron-0.7.1"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/bikx3xf7pxsqlb3n0292vkzpfvzaq61l-gron-0.7.1",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/bikx3xf7pxsqlb3n0292vkzpfvzaq61l-gron-0.7.1"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/wpl1pdxihbhamcm6wvzahdf7lk30zf08-gron-0.7.1",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/wpl1pdxihbhamcm6wvzahdf7lk30zf08-gron-0.7.1"
+        }
+      }
+    },
     "hubble@0.13.6": {
       "last_modified": "2025-02-07T11:26:36Z",
       "resolved": "github:NixOS/nixpkgs/d98abf5cf5914e5e4e9d57205e3af55ca90ffc1d#hubble",
