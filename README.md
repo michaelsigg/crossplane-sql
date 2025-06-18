@@ -31,7 +31,7 @@ task deploy-demo-db-instances
 task deploy-demo-xrd-and-xr
 
 # render XR local
-crossplane render --extra-resources=examples/api/bedag_database/configmap.yaml examples/api/bedag_database/claim.yaml examples/api/bedag_database/composition.yaml examples/api/bedag_database/functions.yaml
+crossplane render --extra-resources=examples/api/bedag_database/configmap.yaml examples/api/bedag_database/xr.yaml examples/api/bedag_database/composition.yaml examples/api/bedag_database/functions.yaml
 
 # deploy demo claim
 kubectl apply -f examples/api/bedag_database/claim.yaml

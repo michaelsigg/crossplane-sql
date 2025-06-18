@@ -32,7 +32,7 @@ spec:
               annotations:
                 argocd.argoproj.io/sync-wave: "1"
             spec:
-              package: xpkg.upbound.io/crossplane-contrib/provider-sql:v0.11.0
+              package: xpkg.upbound.io/crossplane-contrib/provider-sql:v0.12.0
               runtimeConfigRef:
                 apiVersion: pkg.crossplane.io/v1beta1
                 kind: DeploymentRuntimeConfig

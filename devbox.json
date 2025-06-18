@@ -1,20 +1,20 @@
 {
   "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.14.0/.schema/devbox.schema.json",
   "packages": [
-    "kind@0.26.0",
-    "kubectl@1.32.1",
-    "kubernetes-helm@3.17.0",
-    "crossplane-cli@1.18.2",
-    "go-task@3.41.0",
-    "cilium-cli@0.16.23",
-    "hubble@0.13.6",
+    "crossplane-cli@1.20.0",
+    "go-task@3.43.3",
+    "cilium-cli@0.18.3",
+    "hubble@1.17.2",
     "jq@latest",
-    "argocd@2.13.4",
+    "argocd@2.14.11",
     "yq-go@latest",
     "openssl@latest",
     "postgresql_17@latest",
     "curl@latest",
-    "gron@latest"
+    "gron@latest",
+    "kind@0.29.0",
+    "kubectl@1.33.1",
+    "kubernetes-helm@3.18.2"
   ],
   "shell": {
     "init_hook": [
