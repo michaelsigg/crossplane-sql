@@ -9,7 +9,6 @@
     "argocd@2.14.11",
     "yq-go@latest",
     "openssl@latest",
-    "postgresql_17@latest",
     "curl@latest",
     "gron@latest",
     "kind@0.29.0",
@@ -20,7 +19,8 @@
     "init_hook": [
       "echo 'Welcome to devbox!' > /dev/null",
       "export PATH=$PATH:$(pwd)/bin",
-      "export TASK_X_ENV_PRECEDENCE=1"
+      "export TASK_X_ENV_PRECEDENCE=1",
+      "TASK_X_REMOTE_TASKFILES=1"
     ],
     "scripts": {
       "test": [

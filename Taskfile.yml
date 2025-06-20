@@ -1,31 +1,19 @@
 version: '3'
 
+includes:
+  base:
+    taskfile: https://gist.githubusercontent.com/michaelsigg/f0582c84212d0814ba37e6ef228a7b77/raw/50ff8ce93a2b665e8ea91f52499ddd855d7efb69/Taskfile.yml
+    flatten: true
+
 vars:
-  CLUSTER_NAME: '{{.CLUSTER_NAME | default "crossplane-sql"}}'
-  CLUSTER_CONFIG: '{{.CLUSTER_CONFIG | default "kind-cilium-lb/kind-config.yaml"}}'
-  DOCKER_NETWORK: '{{.DOCKER_NETWORK | default "kind"}}'
-  PREP_DOCKER_NETWORK:
-    sh: docker network inspect {{.DOCKER_NETWORK}} >/dev/null 2>&1 || docker network create --driver bridge --scope local {{.DOCKER_NETWORK}}
-  DOCKER_NET_CIDR:
-    sh: docker network inspect {{.DOCKER_NETWORK}} --format json | jq '.[].IPAM.Config[] | select(.Subnet | contains(":") | not) | .Subnet' -r
-  LB_BLOCK_START:
-    sh: echo {{.DOCKER_NET_CIDR}} | sed -E 's@(^|[^0-9])0/(16|24)@\1100@g'
-  LB_BLOCK_STOP:
-    sh: echo {{.DOCKER_NET_CIDR}} | sed -E 's@(^|[^0-9])0/(16|24)@\1150@g'
+  CLUSTER_NAME: crossplane-sql
 
 tasks:
-  default:
-    desc: Display all available tasks
-    cmds:
-      - task --list-all --sort none
 
   setup-cluster:
     desc: Setup the cluster with Crossplane
     cmds:
-      - task: create-kind-cluster
-      - task: deploy-cilium
-      - task: deploy-cilium-lb
-      - task: install-argocd
+      - task: setup-base-cluster
       - task: deploy-crossplane
       - task: deploy-crossplane-functions
       - task: deploy-crossplane-provider-sql
@@ -34,71 +22,11 @@ tasks:
       - task: deploy-atlas-operator
       - task: get-argocd-login-info
 
-  create-kind-cluster:
-    desc: Create a kind cluster with name "{{.CLUSTER_NAME}}" and config "{{.CLUSTER_CONFIG}}"
-    label: create kind cluster {{.CLUSTER_NAME}} and config "{{.CLUSTER_CONFIG}}"
-    dotenv: ['.env'] #https://taskfile.dev/next/experiments/env-precedence
-    cmds:
-      - echo "If the worker nodes fail to join the control plane, refer to https://kind.sigs.k8s.io/docs/user/known-issues/#pod-errors-due-to-too-many-open-files"
-      - kind create cluster --name {{.CLUSTER_NAME}} --config {{.CLUSTER_CONFIG}}
-    status:
-      - kind get clusters | grep -xq {{.CLUSTER_NAME}}
-    requires:
-      vars: [CLUSTER_NAME, CLUSTER_CONFIG]
-
-  delete-kind-cluster:
-    desc: Delete the kind cluster with name "{{.CLUSTER_NAME}}"
-    prompt: Do you want to delete kind cluster {{.CLUSTER_NAME}}?
-    cmds:
-      - kind delete cluster --name {{.CLUSTER_NAME}}
-    preconditions:
-      - kind get clusters | grep -xq {{.CLUSTER_NAME}}
-    requires:
-      vars: [CLUSTER_NAME]
-
-  deploy-cilium:
-    desc: Deploy Cilium with L2 announcement
-    cmds:
-      - helm upgrade cilium cilium --install --reuse-values --repo https://helm.cilium.io --namespace kube-system --version v1.17.4 --set ipam.mode=kubernetes --set kubeProxyReplacement=true --set k8sServiceHost="{{.CLUSTER_NAME}}-control-plane" --set l2announcements.enabled=true --set k8sServicePort=6443 --set socketLB.hostNamespaceOnly=true --set gatewayAPI.enabled=true --set hubble.relay.enabled=true --set hubble.ui.enabled=true --set ingressController.enabled=true --set ingressController.loadbalancerMode=shared --set ingressController.default=true
-      - cilium status --wait
-    requires:
-      vars: [CLUSTER_NAME]
-
-  deploy-cilium-lb:
-    desc: Deploy L2 service announcement
-    cmds:
-      - kubectl apply -f kind-cilium-lb/l2policy.yaml
-      - yq -i '.spec.blocks[0].start = "{{.LB_BLOCK_START}}"' kind-cilium-lb/pool.yaml
-      - yq -i '.spec.blocks[0].stop = "{{.LB_BLOCK_STOP}}"' kind-cilium-lb/pool.yaml
-      - kubectl apply -f kind-cilium-lb/pool.yaml
-    requires:
-      vars: [LB_BLOCK_START, LB_BLOCK_STOP]
-
-  install-argocd:
-    desc: Install ArgoCD
-    cmds:
-      - helm repo add argo https://argoproj.github.io/argo-helm --force-update
-      - helm upgrade argocd argo/argo-cd --install --wait --timeout 5m --namespace argocd --create-namespace --set "configs.cm.application\.resourceTrackingMethod=annotation" --set server.service.type=LoadBalancer
-      - kubectl wait service -n argocd argocd-server --for=jsonpath={..ip} --timeout=90s
-
-  get-argocd-login-info:
-    desc: Print ArgoCD URL and Login credentials
-    cmds:
-      - echo "ArgoCD URL -> https://`kubectl -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}'`"
-      - echo "ArgoCD Username -> admin"
-      - echo "ArgoCD Password -> $(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)"
-
-  login-argocd:
-    desc: Login to ArgoCD
-    cmds:
-      - argocd login $(kubectl -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}') --username admin --password $(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d) --insecure
-
   deploy-crossplane:
     desc: Deploy crossplane
     cmds:
       - kubectl apply -f argocd_apps/crossplane.yaml
-      - task: login-argocd
-      - argocd app wait argocd/crossplane
+      - kubectl wait --namespace argocd --for='jsonpath={.status.health.status}=Healthy' applications.argoproj.io/crossplane --timeout=120s
 
   deploy-crossplane-functions:
     desc: Deploy crossplane functions
@@ -163,12 +91,9 @@ tasks:
   deploy-demo-db-instances:
     desc: Deploy demo database instances
     cmds:
-      # deploy CRD
       - kubectl apply -f examples/api/demo-db-instances/crd_dbinstance.yaml
       - kubectl wait --for=condition=Established crd/dbinstances.database.bedag.ch --timeout=90s
-      # deploy demo db instances
       - kustomize build examples/api/demo-db-instances | kubectl apply -f -
-      # wait for the instances to be ready
       - kubectl wait --namespace bedag-db --for=condition=ready --timeout=90s pods -l app=postgres
 
   deploy-demo-xrd-and-xr:
@@ -183,5 +108,3 @@ tasks:
     cmds:
       - kustomize build examples/provider-http-with-pode | kubectl apply -f -
       - kubectl wait --namespace pode --for=condition=ready --timeout=90s pods -l app=pode
-
- 
